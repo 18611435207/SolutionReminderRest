@@ -9,6 +9,8 @@ namespace ReminderRest.CustomerControl
 {
     public class PositiveIntTextBox : TextBox
     {
+        public Action<string> actionMsg;
+
         public PositiveIntTextBox()
         {
             this.KeyPress += PositiveIntTextBox_KeyPress;
@@ -51,7 +53,7 @@ namespace ReminderRest.CustomerControl
             {
                 if (value <= 1)
                 {
-                    MessageBox.Show("请输入大于 1 的正整数！", "输入错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    actionMsg?.Invoke("请输入大于 1 的正整数！");
                     this.Text = "";
                 }
             }

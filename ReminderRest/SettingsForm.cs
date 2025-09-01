@@ -26,6 +26,12 @@ namespace ReminderRest
                 workingArea.Right - this.Width - 10, // 离右边 10px
                 workingArea.Bottom - this.Height - 10 // 离底部 10px
             );
+            this.Load+=(s,e)=>
+            {
+                this.txtRestMinutes.actionMsg = this.actionMsg;
+                this.txtWorkMinutes.actionMsg = this.actionMsg;
+                this.txtWorkHours.actionMsg = this.actionMsg;
+            };
         }
 
         public int WorkMinutes
