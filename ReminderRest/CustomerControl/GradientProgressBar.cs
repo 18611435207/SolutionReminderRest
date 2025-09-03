@@ -46,7 +46,7 @@ namespace ReminderRest.CustomerControl
                 Invalidate();
             }
         }
-
+        public int SetpSpeed { get; set; } = 25;
         public Color StartColor { get; set; } = Color.MediumSeaGreen;
         public Color EndColor { get; set; } = Color.DodgerBlue;
         public Color BackgroundColor { get; set; } = Color.LightGray;
@@ -69,7 +69,7 @@ namespace ReminderRest.CustomerControl
             this.Size = new Size(200, 30);
             MarkerSize = new Size(Height, Height);
             timer = new Timer();
-            timer.Interval = 15; // 刷新速度（越小越流畅）
+            timer.Interval = SetpSpeed; // 刷新速度（越小越流畅）
             timer.Tick += (s, e) =>
             {
                 if (value < targetValue)

@@ -15,12 +15,16 @@ namespace ReminderRest
         private bool isAfterWork = false;
 
         private NotifyIcon NotifyIcon;
-        private int workHour = int.Parse(Utils.GetAppSetting("WorkHour") ?? "9");//默认9小时
+        int workHour = int.TryParse(Util.Utils.GetAppSetting("WorkHour"), out int wh) ? wh : 9;
         string startWorkStr = ConfigurationManager.AppSettings["StartWorkTime"];
         string MaxAgeAvg = Util.Utils.GetAppSetting("MaxAgeAVG");
         string MaxAgeMan = Util.Utils.GetAppSetting("MaxAgeMan");
         string MaxAgeWoman = Util.Utils.GetAppSetting("MaxAgeWoman");
         string Sex = Util.Utils.GetAppSetting("Sex");
+        int StopWorkAgeMan = int.TryParse(Util.Utils.GetAppSetting("StopWorkAgeMan"), out int swa) ? swa : 60;
+        int StopWorkAgeWoman = int.TryParse(Util.Utils.GetAppSetting("StopWorkAgeWoman"), out int swaw) ? swaw : 50;
+        //int daysStopWork = 0;
+        string BirthDayStr = Util.Utils.GetAppSetting("BirthDay");
 
 
         public RestForm(int minutes = 10, bool isAfterWork = false, NotifyIcon trayIcon = null)
@@ -40,68 +44,86 @@ namespace ReminderRest
             this.lblClose.Click += LblClose_Click;
 
 
+            SetBackFromWallpaper();
 
-            // 设置壁纸作为背景
-            string wallpaperPath = GetWallpaperPath();
-            if (!string.IsNullOrEmpty(wallpaperPath) && System.IO.File.Exists(wallpaperPath))
+            StartRest(minutes);
+
+            ShowAvgAge();
+
+            SetProgressBar();
+
+            this.progress.ValueChanged += (s, e) => UpdateMarkerPosition();
+
+        }
+
+        // ⭐新增方法：更新小人位置
+        private void UpdateMarkerPosition()
+        {
+            if (progress.Maximum <= 0) return;
+
+            float percent = (float)progress.Value / progress.Maximum;
+
+            int markerX = progress.Left + (int)(progress.Width * percent) - picMarker.Width / 2;
+            int markerY = progress.Top - picMarker.Height - 5; // 在进度条上方，留5px空隙
+
+            picMarker.Location = new Point(markerX, markerY);
+
+            lblProgress.Text = $"人生进度---{Math.Round(percent * 100, 2)}%";
+            this.lblDays.Text = $"{progress.Value}/{progress.Maximum} 天";
+        }
+
+        public DateTime? GetBirthDay()
+        {
+            if (!string.IsNullOrWhiteSpace(BirthDayStr) && DateTime.TryParse(BirthDayStr, out DateTime birthDay))
             {
-                this.BackgroundImage = Image.FromFile(wallpaperPath);
-                this.BackgroundImageLayout = ImageLayout.Stretch; // 拉伸铺满
+                return birthDay;
             }
-            else
+            return null;
+        }
+
+        public void SetStopWorkPic()
+        {
+            if (!string.IsNullOrWhiteSpace(BirthDayStr) && DateTime.TryParse(BirthDayStr, out DateTime birthDay))
             {
-                this.BackColor = Color.Black; // 如果没取到壁纸就用黑色
-            }
-
-            remainingTime = TimeSpan.FromMinutes(minutes);
-
-            restTimer = new Timer();
-            restTimer.Interval = 1000; // 1少 
-            UpdateLabel();
-
-            restTimer.Tick += (s, e) =>
-            {
-                this.lblCurrentTime.Text = DateTime.Now.ToString("HH:mm:ss");
-                if (remainingTime.TotalSeconds > 1)
-                {
-                    remainingTime = remainingTime.Subtract(TimeSpan.FromSeconds(1));
-                    UpdateLabel();
-                }
+                int stopWorkAge = 0;
+                if (Sex == "1")//男
+                    stopWorkAge = StopWorkAgeMan;
+                else if (Sex == "2")
+                    stopWorkAge = StopWorkAgeWoman;
                 else
+                    return;
+                DateTime stopWorkDate = birthDay.AddYears(stopWorkAge);
+                double targetDays = (stopWorkDate - birthDay).TotalDays;//目标天数（退休年龄-出生日期）
+                TimeSpan toStopWork = stopWorkDate - DateTime.Now;
+                double daysStopWork = toStopWork.TotalDays;//距离退休天数
+
+                this.lblStopWork.Text = $"离退休({Math.Truncate(daysStopWork)})天\r\n[{stopWorkDate.ToString("yyyy-MM-dd")}]";
+                //按照比例计算小人位置
+                if (targetDays > 0)
                 {
-                    restTimer.Stop();
-                    this.Close(); // 休息结束自动关闭
+                    float percent = (float)(targetDays) / progress.Maximum;
+                    int stopWorkX = progress.Left + (int)(progress.Width * percent) - picStopWork.Width / 2;
+                    int stopWorkY = progress.Bottom + 5; // 在进度条上方，留5px空隙
+                    picStopWork.Location = new Point(stopWorkX, stopWorkY);
+
+                    this.lblStopWork.Location = new Point(stopWorkX - 10, this.lblStopWork.Location.Y);
                 }
-            };
-            restTimer.Start();
 
-            //计算年龄天数
-            string MaxAge = MaxAgeAvg;
-            if (Sex == "1" && !string.IsNullOrEmpty(MaxAgeMan))//男
-            { MaxAge = MaxAgeMan; }
-            else if (Sex == "2" && !string.IsNullOrEmpty(MaxAgeWoman))
-            { MaxAge = MaxAgeWoman; }
-
-            label1.Text = $"平均：{MaxAge}";
-            if (!string.IsNullOrWhiteSpace(MaxAge) && double.TryParse(MaxAge, out double maxAge))
-            {
-                progress.Maximum = Convert.ToInt32(maxAge * 365.00);
             }
-            else
-            {
-                progress.Maximum = 30000; //默认30000天
-            }
+        }
 
+        public void SetProgressBar()
+        {
             DateTime birthDay = DateTime.MinValue;
 
-            var BirthDayStr = Util.Utils.GetAppSetting("BirthDay");
+
             if (!string.IsNullOrWhiteSpace(BirthDayStr) && DateTime.TryParse(BirthDayStr, out DateTime bd))
             {
                 birthDay = bd;
             }
             else
             {
-                //如果没有配置生日，就用程序编译时间作为生日
+                //如果没有配置生日 就不显示进度条
                 lblProgress.Text = "在托盘配置生日";
                 lblDays.Text = "";
                 return;
@@ -126,30 +148,80 @@ namespace ReminderRest
                     this.progress.Value = i;
                 }
             }
-            //进度百分比
-            double percentage = ((double)days) / ((double)progress.Maximum) * 100;
-
-            lblProgress.Text = $"人生进度---{Math.Round(percentage, 2)}%";
-            this.lblDays.Text = $"{days}/{progress.Maximum} 天";
-
-            this.progress.ValueChanged += (s, e) => UpdateMarkerPosition();
-
         }
 
-        // ⭐新增方法：更新小人位置
-        private void UpdateMarkerPosition()
+        public void ShowAvgAge()
         {
-            if (progress.Maximum <= 0) return;
+            //计算年龄天数
+            string MaxAge = MaxAgeAvg;
+            if (Sex == "1" && !string.IsNullOrEmpty(MaxAgeMan))//男
+            { MaxAge = MaxAgeMan; }
+            else if (Sex == "2" && !string.IsNullOrEmpty(MaxAgeWoman))
+            { MaxAge = MaxAgeWoman; }
 
-            float percent = (float)progress.Value / progress.Maximum;
-
-            int markerX = progress.Left + (int)(progress.Width * percent) - picMarker.Width / 2;
-            int markerY = progress.Top - picMarker.Height - 5; // 在进度条上方，留5px空隙
-
-            picMarker.Location = new Point(markerX, markerY);
+            label1.Text = $"平均：{MaxAge}";
+            if (!string.IsNullOrWhiteSpace(MaxAge) && double.TryParse(MaxAge, out double maxAge))
+            {
+                //计算具体天数
+                if (!string.IsNullOrWhiteSpace(BirthDayStr) && DateTime.TryParse(BirthDayStr, out DateTime birthDay))
+                {
+                    DateTime deathDay = birthDay.AddYears((int)maxAge);
+                    TimeSpan lifeSpan = deathDay - birthDay;
+                    int totalDays = (int)lifeSpan.TotalDays;
+                    progress.Maximum = totalDays;
+                }
+                else
+                {
+                    progress.Maximum = (int)(maxAge * 365.25); //默认365.25天/年
+                }
+            }
+            else
+            {
+                progress.Maximum = 30000; //默认30000天
+            }
         }
 
+        //休息结束关闭窗口
+        public void StartRest(int minutes)
+        {
+            remainingTime = TimeSpan.FromMinutes(minutes);
 
+            restTimer = new Timer();
+            restTimer.Interval = 1000; // 1少 
+            UpdateLabel();
+
+            restTimer.Tick += (s, e) =>
+            {
+                this.lblCurrentTime.Text = DateTime.Now.ToString("HH:mm:ss");
+                if (remainingTime.TotalSeconds > 1)
+                {
+                    remainingTime = remainingTime.Subtract(TimeSpan.FromSeconds(1));
+                    UpdateLabel();
+                }
+                else
+                {
+                    restTimer.Stop();
+                    this.Close(); // 休息结束自动关闭
+                }
+            };
+            restTimer.Start();
+        }
+
+        //设置墙纸作为背景
+        public void SetBackFromWallpaper()
+        {
+            // 设置壁纸作为背景
+            string wallpaperPath = GetWallpaperPath();
+            if (!string.IsNullOrEmpty(wallpaperPath) && System.IO.File.Exists(wallpaperPath))
+            {
+                this.BackgroundImage = Image.FromFile(wallpaperPath);
+                this.BackgroundImageLayout = ImageLayout.Stretch; // 拉伸铺满
+            }
+            else
+            {
+                this.BackColor = Color.Black; // 如果没取到壁纸就用黑色
+            }
+        }
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
@@ -232,7 +304,7 @@ namespace ReminderRest
 
             this.picEnd.Location = new Point(this.progress.Right + 10, this.picEnd.Top);
 
-
+            SetStopWorkPic();
         }
 
         // 读取当前 Windows 壁纸路径
