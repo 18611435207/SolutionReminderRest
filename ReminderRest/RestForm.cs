@@ -43,6 +43,12 @@ namespace ReminderRest
             this.Load += RestForm_Load;
             this.lblClose.Click += LblClose_Click;
 
+            //如果电脑名称包含特定字符串 则TopMost为False，保留键盘使用
+            if (Environment.UserName.Contains("LarryYu"))
+            {
+                TopMost = false;
+                KeyboardHookManager.UnInstallHook(); // 卸载键盘钩子
+            }
 
             SetBackFromWallpaper();
 
@@ -51,6 +57,8 @@ namespace ReminderRest
             ShowAvgAge();
 
             SetProgressBar();
+
+
 
             this.progress.ValueChanged += (s, e) => UpdateMarkerPosition();
 
@@ -165,7 +173,11 @@ namespace ReminderRest
                 //计算具体天数
                 if (!string.IsNullOrWhiteSpace(BirthDayStr) && DateTime.TryParse(BirthDayStr, out DateTime birthDay))
                 {
-                    DateTime deathDay = birthDay.AddYears((int)maxAge);
+                    DateTime deathDay = CalculateStopWorkDate(birthDay, maxAge);
+                    TimeSpan age = DateTime.Now - birthDay;
+                    int days = (int)age.TotalDays;
+
+                    this.lblStopLife.Text = $"预期：{(Math.Truncate((deathDay - birthDay).TotalDays) - days)}天\r\n[{deathDay.ToString("yyyy-MM-dd")}]";
                     TimeSpan lifeSpan = deathDay - birthDay;
                     int totalDays = (int)lifeSpan.TotalDays;
                     progress.Maximum = totalDays;
@@ -180,7 +192,22 @@ namespace ReminderRest
                 progress.Maximum = 30000; //默认30000天
             }
         }
+        DateTime CalculateStopWorkDate(DateTime birthDay, double maxAge)
+        {
+            // 拆成年数和小数部分
+            int years = (int)Math.Floor(maxAge);
+            double fraction = maxAge - years;
 
+            // 先加整年
+            DateTime result = birthDay.AddYears(years);
+
+            // 把小数部分换算成天数（按 365.2425 天 = 1 年更准确）
+            int extraDays = (int)Math.Round(fraction * 365.2425);
+
+            result = result.AddDays(extraDays);
+
+            return result;
+        }
         //休息结束关闭窗口
         public void StartRest(int minutes)
         {
@@ -292,7 +319,14 @@ namespace ReminderRest
         {
             this.lblStopSeconds.Location = new Point((this.ClientSize.Width - lblStopSeconds.Width) / 2, (this.ClientSize.Height - lblStopSeconds.Height) / 2);
             this.lblCurrentTime.Location = new Point((this.ClientSize.Width - lblCurrentTime.Width) / 2, (this.ClientSize.Height - lblCurrentTime.Height - lblStopSeconds.Height - 250) / 2);
+
+            //计算labelAfterwork.Text 实际宽度，并将labelAfterwork的宽度设置为实际宽度
+            SizeF textSize = this.CreateGraphics().MeasureString(labelAfterwork.Text, labelAfterwork.Font);
+            labelAfterwork.Width = (int)textSize.Width; // 加10像素的边距 
+
             this.labelAfterwork.Location = new Point((this.ClientSize.Width - labelAfterwork.Width) / 2, (this.ClientSize.Height - labelAfterwork.Height - lblStopSeconds.Height - 100) / 2);
+
+            linkDo.Location = new Point(labelAfterwork.Right + 5, labelAfterwork.Top + labelAfterwork.Height / 2 - linkDo.Height / 2);
 
             lblAfterWork.Location = new Point((this.ClientSize.Width - lblAfterWork.Width) / 2, lblStopSeconds.Bottom + 5);
 
@@ -305,6 +339,8 @@ namespace ReminderRest
             this.picEnd.Location = new Point(this.progress.Right + 10, this.picEnd.Top);
 
             SetStopWorkPic();
+
+            lblStopLife.Location = new Point(progress.Right - 10, this.picStopWork.Bottom);
         }
 
         // 读取当前 Windows 壁纸路径

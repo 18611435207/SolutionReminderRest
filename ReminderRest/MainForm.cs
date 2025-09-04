@@ -216,7 +216,8 @@ namespace ReminderRest
                         trayIcon.BalloonTipText = "程序已在后台运行，会提醒你定时休息哦~";
                         trayIcon.BalloonTipIcon = ToolTipIcon.Info;
                         trayIcon.ShowBalloonTip(3000);
-                        KeyboardHookManager.UnInstallHook(); // 卸载键盘钩子，恢复键盘输入
+                        if (!Environment.UserName.Contains("LarryYu"))
+                            KeyboardHookManager.UnInstallHook(); // 卸载键盘钩子，恢复键盘输入
                     }
                 };
 

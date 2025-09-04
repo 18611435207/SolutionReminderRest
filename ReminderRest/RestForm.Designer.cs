@@ -39,9 +39,11 @@
             this.lblAfterWork = new System.Windows.Forms.Label();
             this.picEnd = new System.Windows.Forms.PictureBox();
             this.picMarker = new System.Windows.Forms.PictureBox();
-            this.progress = new ReminderRest.CustomerControl.GradientProgressBar();
             this.picStopWork = new System.Windows.Forms.PictureBox();
             this.lblStopWork = new System.Windows.Forms.Label();
+            this.linkDo = new System.Windows.Forms.LinkLabel();
+            this.lblStopLife = new System.Windows.Forms.Label();
+            this.progress = new ReminderRest.CustomerControl.GradientProgressBar();
             ((System.ComponentModel.ISupportInitialize)(this.picEnd)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.picMarker)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.picStopWork)).BeginInit();
@@ -170,26 +172,6 @@
             this.picMarker.TabIndex = 6;
             this.picMarker.TabStop = false;
             // 
-            // progress
-            // 
-            this.progress.BackColor = System.Drawing.Color.Transparent;
-            this.progress.BackgroundColor = System.Drawing.Color.Transparent;
-            this.progress.BorderColor = System.Drawing.Color.Black;
-            this.progress.BorderWidth = 2;
-            this.progress.EndColor = System.Drawing.Color.DodgerBlue;
-            this.progress.IsSetText = true;
-            this.progress.Location = new System.Drawing.Point(13, 102);
-            this.progress.MarkerImage = ((System.Drawing.Image)(resources.GetObject("progress.MarkerImage")));
-            this.progress.MarkerSize = new System.Drawing.Size(16, 16);
-            this.progress.Maximum = 100;
-            this.progress.Name = "progress";
-            this.progress.SetpSpeed = 25;
-            this.progress.Size = new System.Drawing.Size(1035, 17);
-            this.progress.StartColor = System.Drawing.Color.MediumSeaGreen;
-            this.progress.TabIndex = 4;
-            this.progress.Text = "人生";
-            this.progress.Value = 0;
-            // 
             // picStopWork
             // 
             this.picStopWork.BackColor = System.Drawing.Color.Transparent;
@@ -214,15 +196,63 @@
             this.lblStopWork.TabIndex = 0;
             this.lblStopWork.Text = "距离退休";
             // 
+            // linkDo
+            // 
+            this.linkDo.AutoSize = true;
+            this.linkDo.BackColor = System.Drawing.Color.Transparent;
+            this.linkDo.ForeColor = System.Drawing.Color.Crimson;
+            this.linkDo.LinkColor = System.Drawing.Color.Crimson;
+            this.linkDo.Location = new System.Drawing.Point(1064, 329);
+            this.linkDo.Name = "linkDo";
+            this.linkDo.Size = new System.Drawing.Size(93, 20);
+            this.linkDo.TabIndex = 7;
+            this.linkDo.TabStop = true;
+            this.linkDo.Text = "一起做个操吧";
+            // 
+            // lblStopLife
+            // 
+            this.lblStopLife.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblStopLife.AutoSize = true;
+            this.lblStopLife.BackColor = System.Drawing.Color.Transparent;
+            this.lblStopLife.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.lblStopLife.ForeColor = System.Drawing.Color.Crimson;
+            this.lblStopLife.Location = new System.Drawing.Point(1050, 125);
+            this.lblStopLife.Name = "lblStopLife";
+            this.lblStopLife.Size = new System.Drawing.Size(42, 22);
+            this.lblStopLife.TabIndex = 5;
+            this.lblStopLife.Text = "剩余";
+            // 
+            // progress
+            // 
+            this.progress.BackColor = System.Drawing.Color.Transparent;
+            this.progress.BackgroundColor = System.Drawing.Color.Transparent;
+            this.progress.BorderColor = System.Drawing.Color.Black;
+            this.progress.BorderWidth = 2;
+            this.progress.EndColor = System.Drawing.Color.DodgerBlue;
+            this.progress.IsSetText = true;
+            this.progress.Location = new System.Drawing.Point(13, 102);
+            this.progress.MarkerImage = ((System.Drawing.Image)(resources.GetObject("progress.MarkerImage")));
+            this.progress.MarkerSize = new System.Drawing.Size(16, 16);
+            this.progress.Maximum = 100;
+            this.progress.Name = "progress";
+            this.progress.SetpSpeed = 25;
+            this.progress.Size = new System.Drawing.Size(1035, 17);
+            this.progress.StartColor = System.Drawing.Color.MediumSeaGreen;
+            this.progress.TabIndex = 4;
+            this.progress.Text = "人生";
+            this.progress.Value = 0;
+            // 
             // RestForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(1161, 769);
+            this.Controls.Add(this.linkDo);
             this.Controls.Add(this.picStopWork);
             this.Controls.Add(this.picMarker);
             this.Controls.Add(this.picEnd);
+            this.Controls.Add(this.lblStopLife);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.progress);
             this.Controls.Add(this.lblClose);
@@ -263,5 +293,7 @@
         private System.Windows.Forms.PictureBox picMarker;
         private System.Windows.Forms.PictureBox picStopWork;
         private System.Windows.Forms.Label lblStopWork;
+        private System.Windows.Forms.LinkLabel linkDo;
+        private System.Windows.Forms.Label lblStopLife;
     }
 }

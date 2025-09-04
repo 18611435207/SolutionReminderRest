@@ -66,6 +66,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommonForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CommonForm.Designer.cs">
+      <DependentUpon>CommonForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="CustomerControl\BirthdayProgressBar.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -104,6 +110,9 @@
       <DependentUpon>StartWorkTimeForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Util\Utils.cs" />
+    <EmbeddedResource Include="CommonForm.resx">
+      <DependentUpon>CommonForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>

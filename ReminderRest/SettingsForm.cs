@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace ReminderRest
 {
-    public partial class SettingsForm : Form
+    public partial class SettingsForm : CommonForm
     {
         internal Action<string> actionMsg;
 

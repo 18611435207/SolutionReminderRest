@@ -11,7 +11,7 @@ using System.Windows.Forms;
 
 namespace ReminderRest
 {
-    public partial class StartWorkTimeForm : Form
+    public partial class StartWorkTimeForm : CommonForm
     {
         int type = 0; //0工作时间 1生日设置
 
