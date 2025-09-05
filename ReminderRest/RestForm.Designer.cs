@@ -43,6 +43,7 @@
             this.lblStopWork = new System.Windows.Forms.Label();
             this.linkDo = new System.Windows.Forms.LinkLabel();
             this.lblStopLife = new System.Windows.Forms.Label();
+            this.panel1 = new System.Windows.Forms.Panel();
             this.progress = new ReminderRest.CustomerControl.GradientProgressBar();
             ((System.ComponentModel.ISupportInitialize)(this.picEnd)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.picMarker)).BeginInit();
@@ -222,6 +223,14 @@
             this.lblStopLife.TabIndex = 5;
             this.lblStopLife.Text = "剩余";
             // 
+            // panel1
+            // 
+            this.panel1.BackColor = System.Drawing.Color.Transparent;
+            this.panel1.Location = new System.Drawing.Point(12, 740);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(1145, 29);
+            this.panel1.TabIndex = 8;
+            // 
             // progress
             // 
             this.progress.BackColor = System.Drawing.Color.Transparent;
@@ -248,6 +257,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(1161, 769);
+            this.Controls.Add(this.panel1);
             this.Controls.Add(this.linkDo);
             this.Controls.Add(this.picStopWork);
             this.Controls.Add(this.picMarker);
@@ -295,5 +305,6 @@
         private System.Windows.Forms.Label lblStopWork;
         private System.Windows.Forms.LinkLabel linkDo;
         private System.Windows.Forms.Label lblStopLife;
+        private System.Windows.Forms.Panel panel1;
     }
 }

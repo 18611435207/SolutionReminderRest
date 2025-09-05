@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using ReminderRest.Util;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Drawing;
 using System.Windows.Forms;
@@ -43,12 +44,8 @@ namespace ReminderRest
             this.Load += RestForm_Load;
             this.lblClose.Click += LblClose_Click;
 
-            //如果电脑名称包含特定字符串 则TopMost为False，保留键盘使用
-            if (Environment.UserName.Contains("LarryYu"))
-            {
-                TopMost = false;
-                KeyboardHookManager.UnInstallHook(); // 卸载键盘钩子
-            }
+            //如果电脑名称包含特定字符串 则TopMost为False，保留键盘使用 
+
 
             SetBackFromWallpaper();
 
@@ -57,10 +54,10 @@ namespace ReminderRest
             ShowAvgAge();
 
             SetProgressBar();
-
-
-
+             
             this.progress.ValueChanged += (s, e) => UpdateMarkerPosition();
+
+            //KeyboardHookManager.UnInstallHook();
 
         }
 
@@ -167,7 +164,7 @@ namespace ReminderRest
             else if (Sex == "2" && !string.IsNullOrEmpty(MaxAgeWoman))
             { MaxAge = MaxAgeWoman; }
 
-            label1.Text = $"平均：{MaxAge}";
+            label1.Text = $"平均年龄：{MaxAge}";
             if (!string.IsNullOrWhiteSpace(MaxAge) && double.TryParse(MaxAge, out double maxAge))
             {
                 //计算具体天数
@@ -177,7 +174,7 @@ namespace ReminderRest
                     TimeSpan age = DateTime.Now - birthDay;
                     int days = (int)age.TotalDays;
 
-                    this.lblStopLife.Text = $"预期：{(Math.Truncate((deathDay - birthDay).TotalDays) - days)}天\r\n[{deathDay.ToString("yyyy-MM-dd")}]";
+                    this.lblStopLife.Text = $"渡劫预期：{(Math.Truncate((deathDay - birthDay).TotalDays) - days)}天\r\n        [{deathDay.ToString("yyyy-MM-dd")}]";
                     TimeSpan lifeSpan = deathDay - birthDay;
                     int totalDays = (int)lifeSpan.TotalDays;
                     progress.Maximum = totalDays;
@@ -340,8 +337,95 @@ namespace ReminderRest
 
             SetStopWorkPic();
 
-            lblStopLife.Location = new Point(progress.Right - 10, this.picStopWork.Bottom);
+            lblStopLife.Location = new Point(progress.Right - 30, this.picStopWork.Bottom);
+            Marquee();
         }
+        // ⭐ 新增成员变量
+        private Timer marqueeTimer;
+        private Label marqueeLabel;
+        private List<string> marqueeTexts;
+        private Random random; 
+
+        private void Marquee()
+        {
+            // 任务栏高度
+            int taskbarHeight = Screen.PrimaryScreen.Bounds.Height - Screen.PrimaryScreen.WorkingArea.Height;
+
+            // Panel 紧贴任务栏上方 +25
+            panel1.Top = Screen.PrimaryScreen.WorkingArea.Height - panel1.Height - 25;
+            panel1.Left = 0;
+            panel1.Width = this.Width;   // 占满窗体宽度
+
+            // 跑马灯文字集合（20条 + emoji）
+            marqueeTexts = new List<string>
+    {
+        "今天也要记得多喝水 💧",
+        "休息一下，活动活动身体吧 🏃",
+        "小憩片刻，提高效率 🚀",
+        "保持好心情，工作更顺利 😊",
+        "伸个懒腰，放松一下吧 🧘",
+        "记得眨眨眼，保护视力 👀",
+        "喝杯茶，让思路更清晰 🍵",
+        "保持微笑，阳光心态最重要 😁",
+        "深呼吸，缓解一下紧张 🌬️",
+        "坐久了起来走一走 🚶",
+        "来点音乐，舒缓心情 🎵",
+        "补充点水果和维生素 🍎",
+        "给自己一个小目标 🎯",
+        "别忘了调整坐姿 🪑",
+        "看看窗外，换个心情 🌳",
+        "拍拍肩膀，放松一会儿 🤲",
+        "喝点温水，关爱胃部 💖",
+        "休息时别忘了多笑笑 😄",
+        "奖励自己一颗糖果 🍬",
+        "再坚持一下，你很棒 👍"
+    };
+
+            random = new Random();
+
+            // 创建Label
+            marqueeLabel = new Label();
+            marqueeLabel.AutoSize = true;
+            marqueeLabel.Font = new Font("微软雅黑", 12, FontStyle.Bold);
+            panel1.Controls.Add(marqueeLabel);
+
+            // 设置第一条文字
+            SetNewMarqueeText();
+
+            // 定时器
+            marqueeTimer = new Timer();
+            marqueeTimer.Interval = 25; // 调整滚动速度
+            marqueeTimer.Tick += (s, e2) =>
+            {
+                marqueeLabel.Left += 2; // 向右移动
+
+                // 完全移出Panel右边 -> 随机换一句，从左边重新出现
+                if (marqueeLabel.Left > panel1.Width)
+                {
+                    SetNewMarqueeText();
+                    marqueeLabel.Left = -marqueeLabel.Width;
+                }
+            };
+            marqueeTimer.Start();
+        }
+
+        // ⭐ 随机文字 + 随机颜色
+        private void SetNewMarqueeText()
+        {
+            string lableText=marqueeTexts[random.Next(marqueeTexts.Count)];
+              
+            marqueeLabel.Text = lableText;
+
+            // 随机颜色
+            int r = random.Next(100, 256);
+            int g = random.Next(100, 256);
+            int b = random.Next(100, 256);
+            marqueeLabel.ForeColor = Color.FromArgb(r, g, b);
+
+            marqueeLabel.Top = (panel1.Height - marqueeLabel.Height) / 2;
+        }
+
+         
 
         // 读取当前 Windows 壁纸路径
         private string GetWallpaperPath()
