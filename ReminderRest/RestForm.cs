@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using ReminderRest.Properties;
 using ReminderRest.Util;
 using System;
 using System.Collections.Generic;
@@ -16,22 +17,27 @@ namespace ReminderRest
         private bool isAfterWork = false;
 
         private NotifyIcon NotifyIcon;
-        int workHour = int.TryParse(Util.Utils.GetAppSetting("WorkHour"), out int wh) ? wh : 9;
-        string startWorkStr = ConfigurationManager.AppSettings["StartWorkTime"];
-        string MaxAgeAvg = Util.Utils.GetAppSetting("MaxAgeAVG");
-        string MaxAgeMan = Util.Utils.GetAppSetting("MaxAgeMan");
-        string MaxAgeWoman = Util.Utils.GetAppSetting("MaxAgeWoman");
+        int workHour = int.TryParse(Util.Utils.GetAppSetting("WorkHour", "9"), out int wh) ? wh : 9;
+        string startWorkStr = Utils.GetAppSetting("StartWorkTime");
+        string MaxAgeAvg = Util.Utils.GetAppSetting("MaxAgeAVG", "78.6") ?? "78.6";
+        string MaxAgeMan = Util.Utils.GetAppSetting("MaxAgeMan", "75.37") ?? "75.37";
+        string MaxAgeWoman = Util.Utils.GetAppSetting("MaxAgeWoman", "80.88") ?? "80.88";
         string Sex = Util.Utils.GetAppSetting("Sex");
-        int StopWorkAgeMan = int.TryParse(Util.Utils.GetAppSetting("StopWorkAgeMan"), out int swa) ? swa : 60;
-        int StopWorkAgeWoman = int.TryParse(Util.Utils.GetAppSetting("StopWorkAgeWoman"), out int swaw) ? swaw : 50;
+        int StopWorkAgeMan = int.TryParse(Util.Utils.GetAppSetting("StopWorkAgeMan", "60"), out int swa) ? swa : 60;
+        int StopWorkAgeWoman = int.TryParse(Util.Utils.GetAppSetting("StopWorkAgeWoman", "50"), out int swaw) ? swaw : 50;
         //int daysStopWork = 0;
         string BirthDayStr = Util.Utils.GetAppSetting("BirthDay");
+        string OpacityStr = Util.Utils.GetAppSetting("Opacity", "90") ?? "90";
 
 
-        public RestForm(int minutes = 10, bool isAfterWork = false, NotifyIcon trayIcon = null)
+        public RestForm(int minutes = 10, bool isAfterWork = false, NotifyIcon trayIcon = null, RestType restType = RestType.WorkRest)
         {
             InitializeComponent();
-            labelAfterwork.Text = isAfterWork ? "哞哞辛苦了 已经下班喽！" : "哞哞辛苦了 休息一下吧！";
+            if (restType == RestType.NoonBreak)
+                labelAfterwork.Text = "午餐时间到~ 吃饭不积极 脑阔疼！";
+            else
+                labelAfterwork.Text = isAfterWork ? "哞哞辛苦了 已经下班喽！" : "哞哞辛苦了 休息一下吧！";
+
             this.NotifyIcon = trayIcon;
             this.isAfterWork = isAfterWork;
             this.FormBorderStyle = FormBorderStyle.None;
@@ -39,7 +45,7 @@ namespace ReminderRest
             this.TopMost = true;
             this.StartPosition = FormStartPosition.Manual;
             //this.BackColor = System.Drawing.Color.Black;
-            this.Opacity = 0.95;
+            this.Opacity = float.Parse(OpacityStr) / 100;
             this.ShowInTaskbar = false;
             this.Load += RestForm_Load;
             this.lblClose.Click += LblClose_Click;
@@ -54,10 +60,9 @@ namespace ReminderRest
             ShowAvgAge();
 
             SetProgressBar();
-             
+
             this.progress.ValueChanged += (s, e) => UpdateMarkerPosition();
 
-            //KeyboardHookManager.UnInstallHook();
 
         }
 
@@ -113,7 +118,6 @@ namespace ReminderRest
 
                     this.lblStopWork.Location = new Point(stopWorkX - 10, this.lblStopWork.Location.Y);
                 }
-
             }
         }
 
@@ -186,7 +190,7 @@ namespace ReminderRest
             }
             else
             {
-                progress.Maximum = 30000; //默认30000天
+                progress.Maximum = (int)(78.6 * 365.25); //默认30000天
             }
         }
         DateTime CalculateStopWorkDate(DateTime birthDay, double maxAge)
@@ -234,17 +238,26 @@ namespace ReminderRest
         //设置墙纸作为背景
         public void SetBackFromWallpaper()
         {
-            // 设置壁纸作为背景
-            string wallpaperPath = GetWallpaperPath();
-            if (!string.IsNullOrEmpty(wallpaperPath) && System.IO.File.Exists(wallpaperPath))
+            if (Resources.img13 != null)
             {
-                this.BackgroundImage = Image.FromFile(wallpaperPath);
+                this.BackgroundImage = Resources.img13;
                 this.BackgroundImageLayout = ImageLayout.Stretch; // 拉伸铺满
             }
             else
             {
-                this.BackColor = Color.Black; // 如果没取到壁纸就用黑色
+                // 设置壁纸作为背景
+                string wallpaperPath = GetWallpaperPath();
+                if (!string.IsNullOrEmpty(wallpaperPath) && System.IO.File.Exists(wallpaperPath))
+                {
+                    this.BackgroundImage = Image.FromFile(wallpaperPath);
+                    this.BackgroundImageLayout = ImageLayout.Stretch; // 拉伸铺满
+                }
+                else
+                {
+                    this.BackColor = Color.Black; // 如果没取到壁纸就用黑色
+                }
             }
+
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
@@ -305,6 +318,7 @@ namespace ReminderRest
                     else
                         lblAfterWork.Text = $"距离下班还有 {toEndWork.Hours}小时 {toEndWork.Minutes}分钟 {toEndWork.Seconds}秒";
                 }
+                
             }
             else
                 lblAfterWork.Text = "";
@@ -335,6 +349,9 @@ namespace ReminderRest
 
             this.picEnd.Location = new Point(this.progress.Right + 10, this.picEnd.Top);
 
+            
+
+
             SetStopWorkPic();
 
             lblStopLife.Location = new Point(progress.Right - 30, this.picStopWork.Bottom);
@@ -343,8 +360,7 @@ namespace ReminderRest
         // ⭐ 新增成员变量
         private Timer marqueeTimer;
         private Label marqueeLabel;
-        private List<string> marqueeTexts;
-        private Random random; 
+        private Random random;
 
         private void Marquee()
         {
@@ -357,29 +373,7 @@ namespace ReminderRest
             panel1.Width = this.Width;   // 占满窗体宽度
 
             // 跑马灯文字集合（20条 + emoji）
-            marqueeTexts = new List<string>
-    {
-        "今天也要记得多喝水 💧",
-        "休息一下，活动活动身体吧 🏃",
-        "小憩片刻，提高效率 🚀",
-        "保持好心情，工作更顺利 😊",
-        "伸个懒腰，放松一下吧 🧘",
-        "记得眨眨眼，保护视力 👀",
-        "喝杯茶，让思路更清晰 🍵",
-        "保持微笑，阳光心态最重要 😁",
-        "深呼吸，缓解一下紧张 🌬️",
-        "坐久了起来走一走 🚶",
-        "来点音乐，舒缓心情 🎵",
-        "补充点水果和维生素 🍎",
-        "给自己一个小目标 🎯",
-        "别忘了调整坐姿 🪑",
-        "看看窗外，换个心情 🌳",
-        "拍拍肩膀，放松一会儿 🤲",
-        "喝点温水，关爱胃部 💖",
-        "休息时别忘了多笑笑 😄",
-        "奖励自己一颗糖果 🍬",
-        "再坚持一下，你很棒 👍"
-    };
+
 
             random = new Random();
 
@@ -412,8 +406,8 @@ namespace ReminderRest
         // ⭐ 随机文字 + 随机颜色
         private void SetNewMarqueeText()
         {
-            string lableText=marqueeTexts[random.Next(marqueeTexts.Count)];
-              
+            string lableText = Static.StaticResource.RemindSentence[random.Next(Static.StaticResource.RemindSentence.Count)];
+
             marqueeLabel.Text = lableText;
 
             // 随机颜色
@@ -425,7 +419,7 @@ namespace ReminderRest
             marqueeLabel.Top = (panel1.Height - marqueeLabel.Height) / 2;
         }
 
-         
+
 
         // 读取当前 Windows 壁纸路径
         private string GetWallpaperPath()

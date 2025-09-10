@@ -91,6 +91,12 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RemindLater.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RemindLater.Designer.cs">
+      <DependentUpon>RemindLater.cs</DependentUpon>
+    </Compile>
     <Compile Include="RestForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -109,6 +115,7 @@
     <Compile Include="StartWorkTimeForm.Designer.cs">
       <DependentUpon>StartWorkTimeForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Static\StaticResource.cs" />
     <Compile Include="Util\Utils.cs" />
     <EmbeddedResource Include="CommonForm.resx">
       <DependentUpon>CommonForm.cs</DependentUpon>
@@ -126,8 +133,12 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <EmbeddedResource Include="RemindLater.resx">
+      <DependentUpon>RemindLater.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="RestForm.resx">
       <DependentUpon>RestForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="SettingsForm.resx">
       <DependentUpon>SettingsForm.cs</DependentUpon>
@@ -186,6 +197,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\heart.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\img13.jpg" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

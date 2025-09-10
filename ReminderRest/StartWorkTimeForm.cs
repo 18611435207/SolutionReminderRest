@@ -70,8 +70,8 @@ namespace ReminderRest
             }
             this.lblSex.Visible = false;
             this.cmbSex.Visible = false;
-            InitCmb(23, cmbHour);
-            InitCmb(59, cmbMinute);
+            Util.Utils.InitCmb(23, cmbHour);
+            Util.Utils.InitCmb(59, cmbMinute);
 
             //给cmb加入当前时间默认值 
             DateTime startWorkTime = DateTime.Now;
@@ -92,13 +92,7 @@ namespace ReminderRest
             cmbMinute.SelectedItem = startWorkTime.Minute.ToString("D2");
         }
 
-        void InitCmb(int maxValue, ComboBox cmb)
-        {
-            for (int i = 0; i <= maxValue; i++)
-            {
-                cmb.Items.Add(i.ToString("D2"));
-            }
-        }
+        
 
         private void BtnSave_Click(object sender, EventArgs e)
         {

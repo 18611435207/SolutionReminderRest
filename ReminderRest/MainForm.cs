@@ -14,13 +14,22 @@ namespace ReminderRest
         private ContextMenuStrip trayMenu;
         private Timer timer;
         private int elapsedMinutes = 0;//已经工作了多少分钟
+        private int totalWorkMinutes = 0;//总共工作多少分钟
         private bool isResting = false;//是否正在休息
         bool isAfterWork = false;//下班
-        private int workMinutes = int.Parse(Utils.GetAppSetting("WorkMinutes") ?? "30");//默认30分钟
+        RestType restType = RestType.Custom;
+        private int workMinutes = int.Parse(Utils.GetAppSetting("WorkMinutes", "30") ?? "30");//默认30分钟
 
-        private int restMinutes =  int.Parse(Utils.GetAppSetting("RestMinutes") ?? "5");//默认5分钟
+        private int restMinutes = int.Parse(Utils.GetAppSetting("RestMinutes", "5") ?? "5");//默认5分钟
 
-        private int workHour =  int.Parse(Utils.GetAppSetting("WorkHour") ?? "9");//默认9小时
+        private int workHour = int.Parse(Utils.GetAppSetting("WorkHour", "9") ?? "9");//默认9小时
+
+        //午休 NoonBreakMinutes
+        private int noonBreakMinutes = int.Parse(Utils.GetAppSetting("NoonBreakMinutes", "60") ?? "60");//默认60分钟
+
+        //NoonBreakHours 午休时间小时
+        private int noonBreakHour = int.Parse(Utils.GetAppSetting("NoonBreakHour", "11") ?? "11");//从几点开始
+        private int noonBreakMin = int.Parse(Utils.GetAppSetting("NoonBreakMin", "30") ?? "30");//从几分开始
 
         public MainForm()
         {
@@ -31,14 +40,14 @@ namespace ReminderRest
             this.Hide();
             // 托盘菜单
             trayMenu = new ContextMenuStrip();
-            
+
             trayMenu.Items.Add("打卡上班时间", null, (s, e) =>
             {
                 using (var f = new StartWorkTimeForm() { onSaveMsg = ShowTooltip })
-                { 
+                {
                     if (f.ShowDialog() == DialogResult.OK)
                     {
-                      
+
                         ShowTooltip("打卡上班时间成功");
                     }
                 }
@@ -54,7 +63,7 @@ namespace ReminderRest
                     }
                 }
             });
-          
+
             trayMenu.Items.Add("设置休息间隔", null, (s, e) =>
             {
                 using (var f = new SettingsForm())
@@ -62,12 +71,18 @@ namespace ReminderRest
                     f.WorkMinutes = workMinutes;
                     f.RestMinutes = restMinutes;
                     f.WorkHour = workHour;
+                    f.NoonBreakMinutes = noonBreakMinutes;
+                    f.NoonBreakHour = noonBreakHour;
+                    f.NoonBreakMin = noonBreakMin;
                     f.actionMsg = ShowTooltip;
                     if (f.ShowDialog() == DialogResult.OK)
                     {
                         workMinutes = f.WorkMinutes;
                         restMinutes = f.RestMinutes;
+                        noonBreakMinutes = f.NoonBreakMinutes;
                         workHour = f.WorkHour;
+                        noonBreakHour = f.NoonBreakHour;
+                        noonBreakMin = f.NoonBreakMin;
                         ShowTooltip("设置成功");
                     }
                 }
@@ -77,8 +92,16 @@ namespace ReminderRest
             {
                 if (!isResting)
                 {
-                    HaveARestNow();
+                    restType = RestType.WorkRest;
+                    HaveARestNow(restType);
                 }
+            });
+
+            trayMenu.Items.Add("开始午休", null, (s, e) =>
+            {
+                StopRest(null, null);//如果在休息中，先停止休息
+                restType = RestType.NoonBreak;
+                HaveARestNow(RestType.NoonBreak);
             });
 
             trayMenu.Items.Add("下班", null, (s, e) =>
@@ -109,7 +132,7 @@ namespace ReminderRest
 
             // 🚀 程序启动时，显示一次托盘气泡提示（3 秒）
             trayIcon.ShowBalloonTip(3000);
-           
+
 
             // 计时器
             timer = new Timer();
@@ -131,17 +154,24 @@ namespace ReminderRest
         {
             CheckFirstRun();
         }
-      
+        RemindLater remindLater = null;
         private void Timer_Tick(object sender, EventArgs e)
         {
-            if (!isAfterWork)//如果下班了，这里就不继续计时了
+
+            //It's time to have lunch
+            totalWorkMinutes += 1;
+            HaveLunch();
+
+            if (!isAfterWork&& restType==RestType.Custom)//如果下班或者休息了，这里就不继续计时了
             {
                 elapsedMinutes++;
                 //显示NotifyIcon 还有多少分钟休息
                 trayIcon.Text = isResting ? $"正在休息，还剩{restMinutes - elapsedMinutes}分钟" : $"工作中，距离休息还有{workMinutes - elapsedMinutes}分钟";
                 if (!isResting && elapsedMinutes >= workMinutes)
                 {
-                    HaveARestNow();
+                    //时间到，开始休息
+                    restType = RestType.WorkRest;
+                    HaveARestNow(restType);
                 }
 
                 int remaining = workMinutes - elapsedMinutes;
@@ -150,6 +180,30 @@ namespace ReminderRest
                     trayIcon.BalloonTipTitle = "休息提醒";
                     trayIcon.BalloonTipText = "还有 1 分钟就要进入休息了，请准备~";
                     trayIcon.ShowBalloonTip(10000);
+
+                    if (remindLater == null)
+                    {
+                        remindLater = new RemindLater()
+                        {
+                            StartPosition = FormStartPosition.Manual,
+                            Location = new System.Drawing.Point(
+                                Screen.PrimaryScreen.WorkingArea.Right - 300 - 10,
+                                Screen.PrimaryScreen.WorkingArea.Bottom - 250 - 10)
+
+                        };
+                        remindLater.OnRemindLater += (s, e1) =>
+                        {
+                            workMinutes += e1; // 计时增加
+                            trayIcon.BalloonTipTitle = "休息提醒";
+                            trayIcon.BalloonTipText = $"已延迟休息，计时已添加[{e1}]分钟~";
+                            trayIcon.ShowBalloonTip(10000);
+                            remindLater = null;
+                        };
+                        remindLater.FormClosed += (s, e1) => { remindLater = null; };
+                        remindLater.Show();
+
+
+                    }
                 }
             }
 
@@ -176,30 +230,78 @@ namespace ReminderRest
             {
                 CheckWorkTime();
             }
+            //每20分钟提醒一下喝水
+            if (totalWorkMinutes % 20 == 0)
+            {
+                trayIcon.BalloonTipTitle = "喝水提醒~~";
+                trayIcon.BalloonTipText = "记得喝杯水补充水分哦~";
+                trayIcon.BalloonTipIcon = ToolTipIcon.Info;
+                trayIcon.ShowBalloonTip(10000);
+            }
+        }
+
+        private void HaveLunch()
+        {
+            //如果现在是11点30分，提醒一下该吃饭了
+            if (DateTime.Now.Hour == noonBreakHour && DateTime.Now.Minute == (noonBreakMin-1))
+            {
+                trayIcon.BalloonTipTitle = "午餐时间到~~";
+                trayIcon.BalloonTipText = "现在是11点29分，记得还有1分钟吃午饭哦~";
+                trayIcon.BalloonTipIcon = ToolTipIcon.Info;
+                trayIcon.ShowBalloonTip(10000);
+            }
+            else if (DateTime.Now.Hour == noonBreakHour && DateTime.Now.Minute == noonBreakMin)
+            {
+                trayIcon.BalloonTipTitle = "午餐时间到~~";
+                trayIcon.BalloonTipText = "现在是11点30分，记得吃午饭哦~";
+                trayIcon.BalloonTipIcon = ToolTipIcon.Info;
+                trayIcon.ShowBalloonTip(10000);
+
+                StopRest(null, null);//如果在休息中，先停止休息
+                restType = RestType.NoonBreak;
+                HaveARestNow(restType);
+            }
         }
 
         // 记录所有休息窗体
         private List<RestForm> restForms = new List<RestForm>();
 
-        public void HaveARestNow()
+        public void HaveARestNow(RestType restType)
         {
             //timer.Stop();
             // 进入休息
+            if (isAfterWork)
+                return;
             isResting = true;
             elapsedMinutes = 0;
-            KeyboardHookManager.InstallHook(); // 安装键盘钩子，屏蔽键盘输入
-            // 设置气泡提示内容 
-            trayIcon.BalloonTipTitle = "哞哞休息提醒~~";
-            trayIcon.BalloonTipText = $"进入{restMinutes}分钟休息时间 请劳逸结合哟~";
+             KeyboardHookManager.InstallHook(); // 安装键盘钩子，屏蔽键盘输入
+                                                // 设置气泡提示内容 
+            if (restType == RestType.NoonBreak)
+            {
+                restMinutes = noonBreakMinutes; //午休1小时 
+                trayIcon.BalloonTipText = $"进入{restMinutes}分钟 午间休息时间 快去吃饭吧~";
+            }
+            else
+            {
+                restMinutes = int.Parse(Utils.GetAppSetting("RestMinutes", "5") ?? "5");
+                trayIcon.BalloonTipText = $"进入{restMinutes}分钟 休息时间 请劳逸结合哟~";
+            }
+            trayIcon.BalloonTipTitle = "哞哞休息提醒~~"; 
             trayIcon.BalloonTipIcon = ToolTipIcon.Warning;
             trayIcon.ShowBalloonTip(3000);
+            if (remindLater != null && !remindLater.IsDisposed)
+            {
+                remindLater.Close();
+                remindLater = null;
+            }
+           
             // 每个屏幕一个 RestForm
             foreach (var screen in Screen.AllScreens)
-            {
-                var restForm = new RestForm(minutes: restMinutes,  false, trayIcon);
+            { 
+                var restForm = new RestForm(minutes: restMinutes, false, trayIcon, restType);
                 restForm.StartPosition = FormStartPosition.Manual;
                 restForm.Bounds = screen.Bounds; // 覆盖整个屏幕
-
+                 
                 restForm.FormClosed += (s, args) =>
                 {
                     // 只在最后一个窗口关闭时恢复计时
@@ -210,31 +312,36 @@ namespace ReminderRest
                         timer.Stop();
                         timer.Start();
                         isResting = false;
+                        this.restType = RestType.Custom;
                         elapsedMinutes = 0; // 休息结束后重置工作计时
+                        restMinutes = int.Parse(Utils.GetAppSetting("RestMinutes", "5") ?? "5");
+                        //重新读取工作时间，防止被延迟修改了
+                        workMinutes = int.Parse(Utils.GetAppSetting("WorkMinutes", "30") ?? "30");
                         trayIcon.BalloonTipTitle = "哞哞休息提醒~~";
                         // 设置气泡提示内容 
                         trayIcon.BalloonTipText = "程序已在后台运行，会提醒你定时休息哦~";
                         trayIcon.BalloonTipIcon = ToolTipIcon.Info;
-                        trayIcon.ShowBalloonTip(3000); 
-                            KeyboardHookManager.UnInstallHook(); // 卸载键盘钩子，恢复键盘输入
+                        trayIcon.ShowBalloonTip(3000);
+                        KeyboardHookManager.UnInstallHook(); // 卸载键盘钩子，恢复键盘输入
                     }
                 };
 
                 restForms.Add(restForm);
                 restForm.Show();
+
             }
         }
 
 
         private void StopRest(object sender, EventArgs e)
         {
-            if (isResting && restForms != null&& restForms.Count>0)
-                restForms.ForEach(f => f.Close()); 
+            if (isResting && restForms != null && restForms.Count > 0)
+                restForms.ForEach(f => f.Close());
         }
 
         private void ExitApp(object sender, EventArgs e)
         {
-            //确诊一下
+            //确认一下
             if (MessageBox.Show("我能提醒你适度休息 你要离我而去吗？", "确认退出", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
             {
                 return;
@@ -242,6 +349,7 @@ namespace ReminderRest
             trayIcon.Visible = false;
             Application.Exit();
         }
+
         private void SetStartup(bool enable)
         {
             try
@@ -305,10 +413,7 @@ namespace ReminderRest
         #region 下班
         private void ClearWorkTime()
         {
-            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            config.AppSettings.Settings["StartWorkTime"].Value = "";
-            config.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings");
+            Utils.ClearAppSettingsValue("StartWorkTime", "");
         }
 
         private void ShowTooltip(string message)
@@ -333,7 +438,7 @@ namespace ReminderRest
                 else
                     lastOffWorkPrompt = DateTime.Now;
             }
-            string startWorkStr = ConfigurationManager.AppSettings["StartWorkTime"];
+            string startWorkStr = Util.Utils.GetAppSetting("StartWorkTime");
             if (string.IsNullOrEmpty(startWorkStr))
             {
                 ShowTooltip("未设置上班时间  请在托盘图标上右键设置今天打卡时间");
@@ -374,14 +479,6 @@ namespace ReminderRest
                 TimeSpan restTime = tomorrow9 - DateTime.Now;
                 // 弹出下班窗口
                 ShowOffWorkForm(restTime.TotalMinutes);
-                //Task.Delay(restTime).ContinueWith(t =>
-                //{
-                //    this.Invoke(new Action(() =>
-                //    {
-                //        ShowTooltip("请设置新的上班时间");
-                //        ClearWorkTime();
-                //    }));
-                //});
             }
         }
 
@@ -404,14 +501,14 @@ namespace ReminderRest
                         //timer.Start();
                         isResting = false;
                         elapsedMinutes = 0; // 休息结束后重置工作计时
+                        restMinutes = int.Parse(Utils.GetAppSetting("RestMinutes", "5") ?? "5");
                         trayIcon.BalloonTipTitle = "哞哞休息提醒~~";
                         // 设置气泡提示内容 
                         trayIcon.BalloonTipText = "程序已在后台运行，会提醒你定时休息哦~";
                         trayIcon.BalloonTipIcon = ToolTipIcon.Info;
-                        trayIcon.ShowBalloonTip(3000);
-                        KeyboardHookManager.UnInstallHook(); // 卸载键盘钩子，恢复键盘输入
+                        trayIcon.ShowBalloonTip(3000); 
                         isAfterWork = false;
-
+                        KeyboardHookManager.UnInstallHook(); // 卸载键盘钩子，恢复键盘输入
                     }
                 };
 
@@ -422,6 +519,8 @@ namespace ReminderRest
 
 
         #endregion
+
+
 
     }
 }

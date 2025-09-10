@@ -26,7 +26,9 @@ namespace ReminderRest
                 workingArea.Right - this.Width - 10, // 离右边 10px
                 workingArea.Bottom - this.Height - 10 // 离底部 10px
             );
-            this.Load+=(s,e)=>
+            Util.Utils.InitCmb(23, cmbHour);
+            Util.Utils.InitCmb(59, cmbMinute);
+            this.Load += (s, e) =>
             {
                 this.txtRestMinutes.actionMsg = this.actionMsg;
                 this.txtWorkMinutes.actionMsg = this.actionMsg;
@@ -66,6 +68,40 @@ namespace ReminderRest
             set { this.txtWorkHours.Text = value.ToString(); }
         }
 
+        //txtNoonBreakMinutes
+        public int NoonBreakMinutes
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(this.txtNoonBreakMinutes.Text))
+                    return 0;
+                return int.Parse(this.txtNoonBreakMinutes.Text);
+            }
+            set { this.txtNoonBreakMinutes.Text = value.ToString(); }
+        }
+
+        public int NoonBreakHour
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(this.cmbHour.Text))
+                    return 0;
+                return int.Parse(this.cmbHour.Text);
+            }
+            set { this.cmbHour.Text = value.ToString("D2"); }
+        }
+
+        public int NoonBreakMin
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(this.cmbMinute.Text))
+                    return 0;
+                return int.Parse(this.cmbMinute.Text);
+            }
+            set { this.cmbMinute.Text = value.ToString("D2"); }
+        }
+
         private void BtnSave_Click(object sender, EventArgs e)
         {
             if (WorkMinutes < 1)
@@ -86,7 +122,13 @@ namespace ReminderRest
                 actionMsg?.Invoke("请输入有效的每日工作时长（小时）大于1的正整数！");
                 return;
             }
-             
+            if (NoonBreakMinutes < 10)
+            { 
+                actionMsg?.Invoke("请输入有效的最长连续工作时长（分钟）大于10的正整数！");
+                return;
+            }
+
+
             SaveWorkTime();
             this.DialogResult = DialogResult.OK;
             this.Close();
@@ -98,6 +140,11 @@ namespace ReminderRest
             config.AppSettings.Settings["WorkMinutes"].Value = WorkMinutes.ToString();
             config.AppSettings.Settings["RestMinutes"].Value = RestMinutes.ToString();
             config.AppSettings.Settings["WorkHour"].Value = WorkHour.ToString();
+            config.AppSettings.Settings["NoonBreakMinutes"].Value = NoonBreakMinutes.ToString();
+
+            config.AppSettings.Settings["NoonBreakHour"].Value = NoonBreakHour.ToString();
+            config.AppSettings.Settings["NoonBreakMin"].Value = NoonBreakMin.ToString();
+
             config.Save(ConfigurationSaveMode.Modified);
             ConfigurationManager.RefreshSection("appSettings");
         }
